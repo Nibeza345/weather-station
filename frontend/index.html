@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Station (MQTT WebSockets)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+      }
+
+      body {
+        background: #f0f2f5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        padding: 20px;
+      }
+
+      .dashboard {
+        width: 90%;
+        max-width: 800px;
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      h2 {
+        color: #007bff;
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      .grid {
+        display: flex;
+        justify-content: space-around;
+        margin: 20px 0;
+      }
+
+      .card {
+        width: 45%;
+        padding: 20px;
+        border-radius: 10px;
+        background: #007bff;
+        color: white;
+        font-size: 22px;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .value {
+        font-size: 36px;
+        font-weight: bold;
+        margin-top: 10px;
+      }
+
+      canvas {
+        width: 100%;
+        max-height: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard">
+      <h2>MQTT Weather Station</h2>
+      <div class="grid">
+        <div class="card">
+          Temperature
+          <div id="temp" class="value">-- °C</div>
+        </div>
+        <div class="card">
+          Humidity
+          <div id="humidity" class="value">-- %</div>
+        </div>
+      </div>
+      <canvas id="weatherChart"></canvas>
+    </div>
+
+    <script>
+      let tempData = [];
+      let humidityData = [];
+      let timestamps = [];
+
+      const ctx = document.getElementById("weatherChart").getContext("2d");
+      const weatherChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: timestamps,
+          datasets: [
+            {
+              label: "Temperature (°C)",
+              borderColor: "#ff5733",
+              backgroundColor: "rgba(255, 87, 51, 0.2)",
+              data: tempData,
+              fill: true,
+            },
+            {
+              label: "Humidity (%)",
+              borderColor: "#33aaff",
+              backgroundColor: "rgba(51, 170, 255, 0.2)",
+              data: humidityData,
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: "Time" } },
+            y: { title: { display: true, text: "Value" } },
+          },
+        },
+      });
+
+      async function fetchWeatherData() {
+        try {
+          const response = await fetch("http://localhost:3001/weather");
+          const data = await response.json();
+          if (data.length > 0) {
+            const latest = data[0];
+
+            // Format values to 2 decimal places
+            document.getElementById("temp").innerText = `${parseFloat(
+              latest.temperature
+            ).toFixed(2)} °C`;
+            document.getElementById("humidity").innerText = `${parseFloat(
+              latest.humidity
+            ).toFixed(2)} %`;
+
+            timestamps.length = 0;
+            tempData.length = 0;
+            humidityData.length = 0;
+
+            data.reverse().forEach((entry) => {
+              timestamps.push(new Date(entry.timestamp).toLocaleTimeString());
+              tempData.push(parseFloat(entry.temperature).toFixed(2));
+              humidityData.push(parseFloat(entry.humidity).toFixed(2));
+            });
+
+            weatherChart.update();
+          }
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      }
+
+      fetchWeatherData();
+      setInterval(fetchWeatherData, 300000);
+    </script>
+  </body>
+</html>
