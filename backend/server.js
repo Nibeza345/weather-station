@@ -74,9 +74,9 @@ setInterval(() => {
     tempReadings = [];
     humidityReadings = [];
   }
-}, 300000); // 5 minutes
+}, 300000); 
 
-// API to Fetch Data
+// Fetch Data
 app.get("/weather", (req, res) => {
   db.all(
     "SELECT * FROM weather ORDER BY timestamp DESC LIMIT 12",
